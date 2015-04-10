@@ -8,18 +8,19 @@ pAttrs = require "./parseAttrs"
 # into attr object
 module.exports = ()->
   through.obj (vfile, unused, cb)->
-    basedir = path.dirname(vfile.path)
-
     fs.createReadStream vfile.path
     .pipe new (byline.LineStream)()
     .pipe through.obj (line, unused, cb)=>
       line = line + "\n"
-      if (m = /<(?:script|link)[ \t]+(.*?)[ \t]*>/.exec line)
+      if (m = /<(?:script|link)[ \t]+(.*?)[ \t]*\/?>/.exec line)
         attrs = pAttrs.parse(pAttrs.reTagAttr, m[1].toString())
         if attrs.gulp
           attrs.gulp = pAttrs.parse(pAttrs.reGulp, attrs.gulp)
-          attrs.basedir = basedir
-          attrs.relative = attrs.src or attrs.href
+          attrs._vfile = {
+            path: vfile.path
+            base: vfile.path.slice(0, vfile.path.length - vfile.relative.length)
+          }
+          attrs._link = attrs.src or attrs.href
           attrs._line = line.toString()
           @push attrs
         else
